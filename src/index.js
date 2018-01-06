@@ -301,7 +301,6 @@ class DDPClient extends EventEmitter {
     return (this.nextId).toString();
   }
 
-
   addObserver(observer: DdpObserver) {
     const id = observer.id.get();
     const name = observer.name.get();
@@ -311,7 +310,6 @@ class DDPClient extends EventEmitter {
     }
     this.observers[name][id] = observer;
   }
-
 
   removeObserver(observer: DdpObserver) {
     const id = observer.id.get();
@@ -403,7 +401,6 @@ class DDPClient extends EventEmitter {
     this.removeAllListeners('connected');
     this.removeAllListeners('failed');
   }
-
 
   // call a method on the server,
   //
