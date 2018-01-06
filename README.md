@@ -1,7 +1,7 @@
 Node DDP Client
 ===============
 
-A callback style [DDP](https://github.com/meteor/meteor/blob/devel/packages/livedata/DDP.md) ([Meteor](http://meteor.com/)'s Distributed Data Protocol) node client, originally based
+A callback style [DDP](https://github.com/meteor/meteor/blob/devel/packages/ddp/DDP.md) ([Meteor](http://meteor.com/)'s Distributed Data Protocol) node client.
 
 The client implements version 1 of DDP, as well as fallbacks to pre1 and pre2.
 
