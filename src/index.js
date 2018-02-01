@@ -3,20 +3,11 @@
 // @flow
 
 import EventEmitter from 'events';
-import { getValues } from './helpers';
+import { getValues, getEntries } from './helpers';
 import type { Message, DdpVersion, DdpObserver, Item, Options, SocketEvent } from './types';
 
 const MiniMongo = require('minimongo-cache');
 const EJSON = require('ejson');
-
-const initialObserver = {
-  id: {},
-  name: {},
-  added: () => {},
-  changed: () => {},
-  removed: () => {},
-  stop: () => {},
-};
 
 class DDPClient extends EventEmitter {
   host: string;
@@ -46,7 +37,9 @@ class DDPClient extends EventEmitter {
     [id: string]: boolean,
   };
   observers: {
-    [name: string]: DdpObserver,
+    [name: string]: {
+      [id: string]: DdpObserver,
+    },
   };
   isClosing: boolean;
   connectionFailed: boolean;
@@ -77,7 +70,7 @@ class DDPClient extends EventEmitter {
 
     // default arguments
     this.host = options.host || 'localhost';
-    this.port = options.port || 3000;
+    this.port = parseInt(options.port, 10) || 3000;
     this.path = options.path || null;
     this.ssl = options.ssl || this.port === 443;
     this.tlsOpts = options.tlsOpts || {};
@@ -215,7 +208,7 @@ class DDPClient extends EventEmitter {
           };
 
           if (data.fields) {
-            getValues(data.fields).forEach(([key, value]) => {
+            getEntries(data.fields).forEach(([key, value]) => {
               item[key] = value;
             });
           }
@@ -263,7 +256,7 @@ class DDPClient extends EventEmitter {
 
           if (data.fields) {
             oldValue = this.collections[name].get(id);
-            Object.entries(data.fields).forEach(([key, value]) => {
+            getEntries(data.fields).forEach(([key, value]) => {
               item[key] = value;
             });
           }
@@ -302,18 +295,16 @@ class DDPClient extends EventEmitter {
   }
 
   addObserver(observer: DdpObserver) {
-    const id = observer.id.get();
-    const name = observer.name.get();
+    const { id, name } = observer;
 
     if (!this.observers[name]) {
-      this.observers[name] = initialObserver;
+      this.observers[name] = {};
     }
     this.observers[name][id] = observer;
   }
 
   removeObserver(observer: DdpObserver) {
-    const id = observer.id.get();
-    const name = observer.name.get();
+    const { id, name } = observer;
 
     if (!this.observers[name]) { return; }
 
@@ -495,33 +486,37 @@ class DDPClient extends EventEmitter {
   observe(name: string, added: Function, changed: Function, removed: Function) {
     const id: string = this.getNextId();
     const observer: DdpObserver = {
-      ...initialObserver,
+      id,
+      name,
       added,
       changed,
       removed,
+      stop: () => {
+        this.removeObserver(observer);
+      },
     };
 
-    // name, _id are immutable
-    Object.defineProperty(
-      observer,
-      'name',
-      ({
-        get: () => name,
-        enumerable: true,
-      }: Object),
-    );
+    // // name, _id are immutable
+    // Object.defineProperty(
+    //   observer,
+    //   'name',
+    //   ({
+    //     get: () => name,
+    //     enumerable: true,
+    //   }: Object),
+    // );
 
-    Object.defineProperty(
-      observer,
-      'id',
-      ({
-        get: () => id,
-      }: Object),
-    );
+    // Object.defineProperty(
+    //   observer,
+    //   'id',
+    //   ({
+    //     get: () => id,
+    //   }: Object),
+    // );
 
-    observer.stop = () => {
-      this.removeObserver(observer);
-    };
+    // observer.stop = () => {
+    //   this.removeObserver(observer);
+    // };
 
     this.addObserver(observer);
 

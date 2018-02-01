@@ -1,5 +1,5 @@
 {
-  "name": "ddp-client",
+  "name": "@navelpluisje/ddp-client",
   "version": "0.1.0",
   "description": "DDP Client for browsers and native JS runtimes (no dependencies on document or 3rd party WebSocket libraries)",
   "main": "dist/index.js",
@@ -9,8 +9,8 @@
     "protocol"
   ],
   "scripts": {
-    "postinstall": "flow-typed install",
     "flow": "flow",
+    "flowtyped": "flow-typed install",
     "lint": "eslint ./src/**/*.js",
     "dev:start": "rollup -cw",
     "build": "rollup -c"

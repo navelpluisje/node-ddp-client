@@ -6,12 +6,16 @@
 
 EventEmitter = EventEmitter && EventEmitter.hasOwnProperty('default') ? EventEmitter['default'] : EventEmitter;
 
-/* global $Values */
+/* global $Values, $Keys */
 
 //      
 
 function getValues(values) {
   return Object.values(values);
+}
+
+function getEntries(values) {
+  return Object.entries(values);
 }
 
 var classCallCheck = function (instance, Constructor) {
@@ -143,15 +147,6 @@ var slicedToArray = function () {
 var MiniMongo = require('minimongo-cache');
 var EJSON = require('ejson');
 
-var initialObserver = {
-  id: {},
-  name: {},
-  added: function added() {},
-  changed: function changed() {},
-  removed: function removed() {},
-  stop: function stop() {}
-};
-
 var DDPClient = function (_EventEmitter) {
   inherits(DDPClient, _EventEmitter);
 
@@ -181,7 +176,7 @@ var DDPClient = function (_EventEmitter) {
 
     // default arguments
     _this.host = options.host || 'localhost';
-    _this.port = options.port || 3000;
+    _this.port = parseInt(options.port, 10) || 3000;
     _this.path = options.path || null;
     _this.ssl = options.ssl || _this.port === 443;
     _this.tlsOpts = options.tlsOpts || {};
@@ -338,7 +333,7 @@ var DDPClient = function (_EventEmitter) {
             };
 
             if (data.fields) {
-              getValues(data.fields).forEach(function (_ref) {
+              getEntries(data.fields).forEach(function (_ref) {
                 var _ref2 = slicedToArray(_ref, 2),
                     key = _ref2[0],
                     value = _ref2[1];
@@ -392,7 +387,7 @@ var DDPClient = function (_EventEmitter) {
 
             if (data.fields) {
               _oldValue = this.collections[_name2].get(_id2);
-              Object.entries(data.fields).forEach(function (_ref3) {
+              getEntries(data.fields).forEach(function (_ref3) {
                 var _ref4 = slicedToArray(_ref3, 2),
                     key = _ref4[0],
                     value = _ref4[1];
@@ -436,19 +431,21 @@ var DDPClient = function (_EventEmitter) {
   }, {
     key: 'addObserver',
     value: function addObserver(observer) {
-      var id = observer.id.get();
-      var name = observer.name.get();
+      var id = observer.id,
+          name = observer.name;
+
 
       if (!this.observers[name]) {
-        this.observers[name] = initialObserver;
+        this.observers[name] = {};
       }
       this.observers[name][id] = observer;
     }
   }, {
     key: 'removeObserver',
     value: function removeObserver(observer) {
-      var id = observer.id.get();
-      var name = observer.name.get();
+      var id = observer.id,
+          name = observer.name;
+
 
       if (!this.observers[name]) {
         return;
@@ -657,29 +654,38 @@ var DDPClient = function (_EventEmitter) {
       var _this9 = this;
 
       var id = this.getNextId();
-      var observer = _extends({}, initialObserver, {
+      var observer = {
+        id: id,
+        name: name,
         added: added,
         changed: changed,
-        removed: removed
-      });
-
-      // name, _id are immutable
-      Object.defineProperty(observer, 'name', {
-        get: function get$$1() {
-          return name;
-        },
-        enumerable: true
-      });
-
-      Object.defineProperty(observer, 'id', {
-        get: function get$$1() {
-          return id;
+        removed: removed,
+        stop: function stop() {
+          _this9.removeObserver(observer);
         }
-      });
-
-      observer.stop = function () {
-        _this9.removeObserver(observer);
       };
+
+      // // name, _id are immutable
+      // Object.defineProperty(
+      //   observer,
+      //   'name',
+      //   ({
+      //     get: () => name,
+      //     enumerable: true,
+      //   }: Object),
+      // );
+
+      // Object.defineProperty(
+      //   observer,
+      //   'id',
+      //   ({
+      //     get: () => id,
+      //   }: Object),
+      // );
+
+      // observer.stop = () => {
+      //   this.removeObserver(observer);
+      // };
 
       this.addObserver(observer);
 

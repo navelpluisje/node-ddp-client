@@ -3,8 +3,8 @@
 export type DdpVersion = '1'| 'pre2'| 'pre1';
 
 export type DdpObserver = {
-  id: Object,
-  name: Object,
+  id: string,
+  name: string,
   added: Function,
   changed: Function,
   removed: Function,
