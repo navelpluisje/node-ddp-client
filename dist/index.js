@@ -18,6 +18,35 @@ function getEntries(values) {
   return Object.entries(values);
 }
 
+var asyncToGenerator = function (fn) {
+  return function () {
+    var gen = fn.apply(this, arguments);
+    return new Promise(function (resolve, reject) {
+      function step(key, arg) {
+        try {
+          var info = gen[key](arg);
+          var value = info.value;
+        } catch (error) {
+          reject(error);
+          return;
+        }
+
+        if (info.done) {
+          resolve(value);
+        } else {
+          return Promise.resolve(value).then(function (value) {
+            step("next", value);
+          }, function (err) {
+            step("throw", err);
+          });
+        }
+      }
+
+      return step("next");
+    });
+  };
+};
+
 var classCallCheck = function (instance, Constructor) {
   if (!(instance instanceof Constructor)) {
     throw new TypeError("Cannot call a class as a function");
@@ -466,59 +495,64 @@ var DDPClient = function (_EventEmitter) {
   }, {
     key: 'connect',
     value: function connect(connected) {
-      this.isConnecting = true;
-      this.connectionFailed = false;
-      this.isClosing = false;
+      var _this5 = this;
 
-      if (connected) {
-        this.addConnectedListener(connected);
-        this.addFailedListener(connected);
-      }
+      return new Promise(function (resolve) {
+        _this5.isConnecting = true;
+        _this5.connectionFailed = false;
+        _this5.isClosing = false;
 
-      var url = this.buildWsUrl();
-      this.makeWebSocketConnection(url);
+        if (connected) {
+          _this5.addConnectedListener(connected);
+          _this5.addFailedListener(connected);
+        }
+
+        var url = _this5.buildWsUrl();
+        _this5.makeWebSocketConnection(url);
+        resolve(!_this5.connectionFailed);
+      });
     }
   }, {
     key: 'addConnectedListener',
     value: function addConnectedListener(connected) {
-      var _this5 = this;
+      var _this6 = this;
 
       this.addListener('connected', function () {
-        _this5.clearReconnectTimeout();
+        _this6.clearReconnectTimeout();
 
-        connected(undefined, _this5.isReconnecting);
-        _this5.isConnecting = false;
-        _this5.isReconnecting = false;
+        connected(undefined, _this6.isReconnecting);
+        _this6.isConnecting = false;
+        _this6.isReconnecting = false;
       });
     }
   }, {
     key: 'addFailedListener',
     value: function addFailedListener(connected) {
-      var _this6 = this;
+      var _this7 = this;
 
       this.addListener('failed', function (error) {
-        _this6.isConnecting = false;
-        _this6.connectionFailed = true;
-        connected(error, _this6.isReconnecting);
+        _this7.isConnecting = false;
+        _this7.connectionFailed = true;
+        connected(error, _this7.isReconnecting);
       });
     }
   }, {
     key: 'endPendingMethodCalls',
     value: function endPendingMethodCalls() {
-      var _this7 = this;
+      var _this8 = this;
 
       var ids = Object.keys(this.pendingMethods);
       this.pendingMethods = {};
 
       ids.forEach(function (id) {
-        if (_this7.callbacks[id]) {
-          _this7.callbacks[id](new Error('DDPClient: Disconnected from DDP server'));
-          delete _this7.callbacks[id];
+        if (_this8.callbacks[id]) {
+          _this8.callbacks[id](new Error('DDPClient: Disconnected from DDP server'));
+          delete _this8.callbacks[id];
         }
 
-        if (_this7.updatedCallbacks[id]) {
-          _this7.updatedCallbacks[id]();
-          delete _this7.updatedCallbacks[id];
+        if (_this8.updatedCallbacks[id]) {
+          _this8.updatedCallbacks[id]();
+          delete _this8.updatedCallbacks[id];
         }
       });
     }
@@ -540,10 +574,34 @@ var DDPClient = function (_EventEmitter) {
     }
   }, {
     key: 'makeWebSocketConnection',
-    value: function makeWebSocketConnection(url) {
-      this.socket = new this.SocketConstructor(url);
-      this.prepareHandlers();
-    }
+    value: function () {
+      var _ref5 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(url) {
+        return regeneratorRuntime.wrap(function _callee$(_context) {
+          while (1) {
+            switch (_context.prev = _context.next) {
+              case 0:
+                _context.next = 2;
+                return new this.SocketConstructor(url);
+
+              case 2:
+                this.socket = _context.sent;
+
+                this.prepareHandlers();
+
+              case 4:
+              case 'end':
+                return _context.stop();
+            }
+          }
+        }, _callee, this);
+      }));
+
+      function makeWebSocketConnection(_x2) {
+        return _ref5.apply(this, arguments);
+      }
+
+      return makeWebSocketConnection;
+    }()
   }, {
     key: 'close',
     value: function close() {
@@ -560,24 +618,24 @@ var DDPClient = function (_EventEmitter) {
   }, {
     key: 'call',
     value: function call(method, params, callback, updatedCallback) {
-      var _this8 = this,
+      var _this9 = this,
           _arguments = arguments;
 
       var id = this.getNextId();
 
       this.callbacks[id] = function () {
-        delete _this8.pendingMethods[id];
+        delete _this9.pendingMethods[id];
 
         if (callback) {
-          callback.apply(_this8, _arguments); // eslint-disable-line
+          callback.apply(_this9, _arguments); // eslint-disable-line
         }
       };
 
       this.updatedCallbacks[id] = function () {
-        delete _this8.pendingMethods[id];
+        delete _this9.pendingMethods[id];
 
         if (updatedCallback) {
-          updatedCallback.apply(_this8, _arguments); // eslint-disable-line
+          updatedCallback.apply(_this9, _arguments); // eslint-disable-line
         }
       };
 
@@ -651,7 +709,7 @@ var DDPClient = function (_EventEmitter) {
   }, {
     key: 'observe',
     value: function observe(name, added, changed, removed) {
-      var _this9 = this;
+      var _this10 = this;
 
       var id = this.getNextId();
       var observer = {
@@ -661,7 +719,7 @@ var DDPClient = function (_EventEmitter) {
         changed: changed,
         removed: removed,
         stop: function stop() {
-          _this9.removeObserver(observer);
+          _this10.removeObserver(observer);
         }
       };
 

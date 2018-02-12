@@ -319,18 +319,21 @@ class DDPClient extends EventEmitter {
    *               If autoReconnect is true (default), the callback will be
    *               called each time the connection is opened.
    */
-  connect(connected?: Function) {
-    this.isConnecting = true;
-    this.connectionFailed = false;
-    this.isClosing = false;
+  connect(connected?: Function): Promise<*> {
+    return new Promise((resolve: Function) => {
+      this.isConnecting = true;
+      this.connectionFailed = false;
+      this.isClosing = false;
 
-    if (connected) {
-      this.addConnectedListener(connected);
-      this.addFailedListener(connected);
-    }
+      if (connected) {
+        this.addConnectedListener(connected);
+        this.addFailedListener(connected);
+      }
 
-    const url = this.buildWsUrl();
-    this.makeWebSocketConnection(url);
+      const url = this.buildWsUrl();
+      this.makeWebSocketConnection(url);
+      resolve(!this.connectionFailed);
+    });
   }
 
   addConnectedListener(connected: Function) {
@@ -381,8 +384,8 @@ class DDPClient extends EventEmitter {
     return url;
   }
 
-  makeWebSocketConnection(url: string) {
-    this.socket = new this.SocketConstructor(url);
+  async makeWebSocketConnection(url: string) {
+    this.socket = await new this.SocketConstructor(url);
     this.prepareHandlers();
   }
 
